@@ -13,9 +13,6 @@ from .listener import Listener
 from .snapchat import Snapchat, SnapchatError
 from .spotify import Spotify, SpotifyError
 
-HELP = "Try saying play a song, pause, skip, add this song to a playlist, or send a message to someone."
-
-
 class Assistant:
     def __init__(self, config: dict):
         self.config = config
@@ -51,7 +48,7 @@ class Assistant:
         intent = intents.parse(text)
         if intent is None:
             self.feedback.error()
-            self.feedback.say(f"Sorry, I don't know how to do that. {HELP}")
+            self.feedback.say("Sorry, I don't know that.")
             return
         print(f"intent: {intent.name} {intent.slots}", flush=True)
         try:
