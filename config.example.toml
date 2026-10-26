@@ -1,0 +1,48 @@
+# Copy this file to config.toml and fill in your details.
+#   cp config.example.toml config.toml
+
+[wake_word]
+enabled = true
+# Built-in models: "hey_jarvis", "alexa", "hey_mycroft", "hey_rhasspy".
+# You can also give a path to your own trained .onnx model.
+model = "hey_jarvis"
+# 0.0 - 1.0. Raise it if it triggers by accident, lower it if it ignores you.
+threshold = 0.5
+
+[speech]
+# Whisper model: "tiny.en", "base.en", "small.en" (good balance), "medium.en".
+model = "small.en"
+# "cpu" works everywhere. "cuda" is faster but needs the NVIDIA CUDA 12 + cuDNN 9 libraries.
+device = "cpu"
+# Leave empty for the default mic, or set an ALSA device from `arecord -L`.
+microphone = ""
+# Seconds to wait for you to start talking after activation.
+start_timeout = 5.0
+# Seconds of silence that mean you've finished talking.
+end_silence = 0.9
+
+[feedback]
+# Speak replies out loud with spd-say.
+speak = true
+# Play a chime when the assistant starts listening.
+chime = true
+
+[spotify]
+# Create an app at https://developer.spotify.com/dashboard
+# and add this exact Redirect URI to it: http://127.0.0.1:8888/callback
+client_id = ""
+client_secret = ""
+redirect_uri = "http://127.0.0.1:8888/callback"
+
+[snapchat]
+# Ask "Send 'hi' to Sam?" and wait for "yes" before sending.
+confirm = true
+# Snapchat Web needs a visible browser window; headless mode usually gets blocked.
+headless = false
+# "chrome" uses your installed Google Chrome. Set to "" to use Playwright's own Chromium.
+browser_channel = "chrome"
+
+# Map the name you say to the name shown in your Snapchat chat list.
+[snapchat.contacts]
+# "mum" = "Mum ❤️"
+# "jake" = "Jake Smith"
