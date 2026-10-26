@@ -16,20 +16,29 @@ from pathlib import Path
 SYSTEM_PYTHON = "/usr/bin/python3"
 WIDTH = 440
 
-# Just text floating on the screen, no boxes. The dark shadow keeps it readable
-# over light backgrounds.
+# Old green-screen terminal: phosphor green text that glows, amber highlights,
+# and faint CRT scanlines over a near-black background.
+GREEN = "#33ff66"
 CSS = b"""
-label { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.7); }
-.card { background: transparent; padding: 12px 20px; }
-.heading { color: #fffc00; font-weight: 800; font-size: 9pt; letter-spacing: 1px; }
-.to-label { color: #c8c9cf; font-size: 12pt; }
-.to { color: #fffc00; font-weight: 700; font-size: 14pt; }
-.message { color: #ffffff; font-size: 13pt; }
-.status { font-weight: 700; font-size: 11pt; }
-.waiting { color: #fffc00; }
-.working { color: #c8c9cf; }
-.done { color: #4ade80; }
-.failed { color: #f87171; }
+* { font-family: "Ubuntu Mono", "DejaVu Sans Mono", monospace; }
+label { text-shadow: 0 0 6px rgba(51, 255, 102, 0.55); }
+.card {
+    background-color: #050a06;
+    background-image: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 2px,
+                                                rgba(0, 0, 0, 0.45) 2px, rgba(0, 0, 0, 0.45) 4px);
+    border: 2px solid #33ff66;
+    box-shadow: inset 0 0 18px rgba(51, 255, 102, 0.18);
+    padding: 12px 18px 14px 18px;
+}
+.heading { color: #1f9e3f; font-size: 11pt; }
+.to-label { color: #1f9e3f; font-size: 13pt; }
+.to { color: #ffb000; font-weight: 700; font-size: 14pt; text-shadow: 0 0 6px rgba(255, 176, 0, 0.6); }
+.message { color: #33ff66; font-size: 14pt; }
+.status { font-weight: 700; font-size: 13pt; }
+.waiting { color: #ffb000; text-shadow: 0 0 6px rgba(255, 176, 0, 0.6); }
+.working { color: #1f9e3f; }
+.done { color: #33ff66; }
+.failed { color: #ff4040; text-shadow: 0 0 6px rgba(255, 64, 64, 0.6); }
 """
 
 
@@ -74,9 +83,6 @@ def _run_window():
     window.set_default_size(WIDTH, -1)
     screen = window.get_screen()
     Gtk.StyleContext.add_provider_for_screen(screen, style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-    if screen.get_rgba_visual() is not None:  # transparent background, so only the text shows
-        window.set_visual(screen.get_rgba_visual())
-        window.set_app_paintable(True)
 
     def label(css_class: str, **kwargs) -> Gtk.Label:
         widget = Gtk.Label(xalign=0, **kwargs)
@@ -86,9 +92,9 @@ def _run_window():
     card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     card.get_style_context().add_class("card")
     card.set_size_request(WIDTH, -1)
-    card.pack_start(label("heading", label="SNAPCHAT MESSAGE"), False, False, 0)
+    card.pack_start(label("heading", label="C:\\> SNAPCHAT.EXE /SEND"), False, False, 0)
     to_row = Gtk.Box(spacing=8)
-    to_row.pack_start(label("to-label", label="To"), False, False, 0)
+    to_row.pack_start(label("to-label", label="TO:"), False, False, 0)
     to_label = label("to", wrap=True, max_width_chars=30)
     to_row.pack_start(to_label, False, False, 0)
     card.pack_start(to_row, False, False, 0)
@@ -100,14 +106,26 @@ def _run_window():
     window.add(card)
 
     close_after = {"ms": 0}
+    status = {"text": "", "cursor": True}
+
+    def show_status():
+        status_label.set_text(f"[ {status['text']} ]" + (" █" if status["cursor"] else ""))
+
+    def blink():
+        status["cursor"] = not status["cursor"]
+        show_status()
+        return True
+
+    GLib.timeout_add(500, blink)
 
     def apply(update: dict):
         if "to" in update:
-            to_label.set_text(update["to"])
+            to_label.set_text(update["to"].upper())
         if "message" in update:
-            message_label.set_text(f"“{update['message']}”")
+            message_label.set_text(f"> {update['message']}")
         if "status" in update:
-            status_label.set_text(update["status"])
+            status["text"] = update["status"].upper().replace("…", "...")
+            show_status()
             context = status_label.get_style_context()
             for state in ("waiting", "working", "done", "failed"):
                 context.remove_class(state)
