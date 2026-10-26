@@ -10,6 +10,7 @@ from . import intents
 from .audio import Feedback, Microphone
 from .config import SOCKET_PATH
 from .listener import Listener
+from .popup import SendPopup
 from .snapchat import Snapchat, SnapchatError
 from .spotify import Spotify, SpotifyError
 
@@ -104,14 +105,24 @@ class Assistant:
         return None
 
     def send_snapchat(self, who: str, message: str) -> str:
-        # Find the chat first so the confirmation uses their real Snapchat name.
-        name = self.snapchat.open_chat(who)
-        if self.config["snapchat"]["confirm"]:
-            self.feedback.say(f"Send {message} to {name}?")
-            answer = self.listener.listen()
-            if not answer or not intents.is_yes(answer):
-                return "Okay, I won't send it."
-        return self.snapchat.send_to_open_chat(message)
+        popup = SendPopup(who, message)
+        try:
+            # Find the chat first so the confirmation uses their real Snapchat name.
+            name = self.snapchat.open_chat(who)
+            if self.config["snapchat"]["confirm"]:
+                popup.update("Say “yes” to send", "waiting", to=name)
+                self.feedback.say(f"Send {message} to {name}?")
+                answer = self.listener.listen()
+                if not answer or not intents.is_yes(answer):
+                    popup.finish("Cancelled", "failed")
+                    return "Okay, I won't send it."
+            popup.update("Sending…", to=name)
+            reply = self.snapchat.send_to_open_chat(message)
+        except Exception:
+            popup.finish("Couldn't send", "failed", close_after=4)
+            raise
+        popup.finish("Sent ✓", "done")
+        return reply
 
     def _serve_socket(self):
         """Accepts commands from `voice-assistant trigger` (your keyboard shortcut) and
