@@ -19,22 +19,35 @@ class Microphone:
     """Reads the mic on a background thread so audio never piles up while we're busy."""
 
     def __init__(self, device: str = ""):
-        cmd = ["arecord", "-q", "-f", "S16_LE", "-r", str(SAMPLE_RATE), "-c", "1", "-t", "raw"]
+        self.cmd = ["arecord", "-q", "-f", "S16_LE", "-r", str(SAMPLE_RATE), "-c", "1", "-t", "raw"]
         if device:
-            cmd += ["-D", device]
-        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            self.cmd += ["-D", device]
+        self.proc = None
         self.chunks: queue.Queue[np.ndarray | None] = queue.Queue(maxsize=200)
-        threading.Thread(target=self._reader, daemon=True).start()
 
-    def _reader(self):
+    def start(self):
+        if self.proc is not None:
+            return
+        self.chunks = queue.Queue(maxsize=200)
+        self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE)
+        threading.Thread(target=self._reader, args=(self.proc, self.chunks), daemon=True).start()
+
+    def stop(self):
+        if self.proc is not None:
+            self.proc.terminate()
+            self.proc.wait()
+            self.proc = None
+
+    def _reader(self, proc: subprocess.Popen, chunks: queue.Queue):
         while True:
-            data = self.proc.stdout.read(CHUNK * 2)
+            data = proc.stdout.read(CHUNK * 2)
             if len(data) < CHUNK * 2:
-                self.chunks.put(None)
+                if self.proc is proc:  # ended without us stopping it
+                    chunks.put(None)
                 return
-            if self.chunks.full():
-                self.chunks.get_nowait()
-            self.chunks.put(np.frombuffer(data, dtype=np.int16))
+            if chunks.full():
+                chunks.get_nowait()
+            chunks.put(np.frombuffer(data, dtype=np.int16))
 
     def read(self, timeout: float | None = None) -> np.ndarray | None:
         """Next 80 ms chunk, or None if `timeout` passes first."""
@@ -52,11 +65,7 @@ class Microphone:
             self.chunks.get_nowait()
 
     def close(self):
-        self.proc.terminate()
-
-
-def rms(chunk: np.ndarray) -> float:
-    return float(np.sqrt(np.mean(chunk.astype(np.float32) ** 2)))
+        self.stop()
 
 
 class Feedback:

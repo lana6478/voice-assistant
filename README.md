@@ -6,7 +6,8 @@ Wake word detection ([openWakeWord](https://github.com/dscripka/openWakeWord)) a
 
 You can start it two ways:
 
-- **Say "Hey Jarvis"**, then your command.
+- **Say "Hey Jarvis"**, then your command. This keeps the mic on all the time, so you can turn it off with
+  `enabled = false` under `[wake_word]` in `config.toml`. The mic then only turns on after you press the shortcut.
 - **Press Super+Alt+V**. On the Cradio, hold the right thumb key (Backspace / layer 1) and tap the **T** key.
 
 ## Things you can say
@@ -72,7 +73,9 @@ You can also type commands to the running assistant, which is handy for testing:
 
 ## Notes
 
-- **Snapchat** has no public API, so the assistant controls Snapchat for Web in a Chrome window. If Snapchat changes
+- **Snapchat** has no public API, so the assistant controls Snapchat for Web in its own Chrome window. The window
+  opens minimised the first time you send a message and stays open in the background, so later messages are faster.
+  (Chrome no longer lets other programs control your everyday Chrome profile, so it can't be a tab in your normal window.) If Snapchat changes
   its website, sending may break. The selectors to fix are at the top of `src/voice_assistant/snapchat.py`.
   Automating Snapchat Web may go against Snapchat's terms of service. Before sending, the assistant reads the message back
   and waits for you to say "yes". You can turn that off with `confirm = false`.

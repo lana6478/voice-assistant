@@ -107,13 +107,14 @@ class Assistant:
         return None
 
     def send_snapchat(self, who: str, message: str) -> str:
-        name = self.snapchat.resolve_name(who)
+        # Find the chat first so the confirmation uses their real Snapchat name.
+        name = self.snapchat.open_chat(who)
         if self.config["snapchat"]["confirm"]:
             self.feedback.say(f"Send {message} to {name}?")
             answer = self.listener.listen()
             if not answer or not intents.is_yes(answer):
                 return "Okay, I won't send it."
-        return self.snapchat.send(who, message)
+        return self.snapchat.send_to_open_chat(message)
 
     def _serve_socket(self):
         """Accepts commands from `voice-assistant trigger` (your keyboard shortcut) and
